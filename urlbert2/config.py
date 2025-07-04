@@ -44,3 +44,13 @@ IMPORTANT_HEADERS = ["Server", "Content-Type", "Set-Cookie", "Location", "Date"]
 REQUEST_TIMEOUT_SECONDS = 5 # requests.get의 timeout
 LIME_NUM_FEATURES = 5
 LIME_NUM_SAMPLES = 1000
+
+
+TRUSTED_DOMAINS_FOR_EXPLANATION = [
+    'google', 'naver', 'kakao', 'daum', 'youtube', 'facebook', 'instagram', 
+    'apple', 'microsoft', 'amazon', 'paypal', 'coupang', 'gmarket', '11st',
+    'tistory', 'wordpress', 'github', 'gitlab', 'stackoverflow', 'twitter', 'x.com',
+    'wikipedia', 'netflix', 'ebay', 'alibaba', 'shopify', 'bbc', 'cnn', 'discord',
+    'reddit', 'linkedin', 'line', 'telegram', 'vimeo', 'unsplash', 'pixabay', 'flickr'
+    # 여기에 필요에 따라 더 많은 도메인을 추가할 수 있습니다.
+]
