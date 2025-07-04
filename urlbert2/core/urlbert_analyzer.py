@@ -27,7 +27,7 @@ from config import (
     TRUSTED_DOMAINS_FOR_EXPLANATION
 )
 
-# --- HTTP 헤더 정보 추출 함수 (이전과 동일) ---
+# --- HTTP 헤더 정보 추출 함수 ---
 def get_header_info(url: str) -> str:
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114 Safari/537.36",
@@ -55,7 +55,7 @@ def get_header_info(url: str) -> str:
     except Exception:
         return "NOHEADER"
 
-# --- 데이터 전처리 함수 (이전과 동일) ---
+# --- 데이터 전처리 함수  ---
 def preprocess_url_for_inference(url: str, header_info: str, tokenizer: BertTokenizer, pad_size: int = PAD_SIZE):
     text = f"{url} [SEP] {header_info}"
     tokenized_text = tokenizer.tokenize(text)
@@ -82,7 +82,7 @@ def preprocess_url_for_inference(url: str, header_info: str, tokenizer: BertToke
         torch.tensor([masks], dtype=torch.long).to(DEVICE)
     )
 
-# --- LIME 설명자를 위한 예측 함수 (이전과 동일) ---
+# --- LIME 설명자를 위한 예측 함수  ---
 def lime_predictor_fn(texts, model, tokenizer): 
     probabilities = []
     for text_input in texts:
@@ -100,7 +100,7 @@ def lime_predictor_fn(texts, model, tokenizer):
             probabilities.append(probs[0])
     return np.array(probabilities)
 
-# --- URL 분류 및 설명 생성 함수 (메인 추론 함수 - 출력 개선 부분 수정) ---
+# --- URL 분류 및 설명 생성 함수 ---
 def classify_url_with_explanation(url: str, model, tokenizer) -> dict: 
     print(f"\nURL 분석 시작: {url}")
     header_info = get_header_info(url)
@@ -178,18 +178,18 @@ def classify_url_with_explanation(url: str, model, tokenizer) -> dict:
                 meaning = "대부분의 일반적인 웹사이트는 'www' 접두사를 사용합니다. 이는 표준적인 웹 주소 형태로, URL의 정상성을 나타내는 신호로 작용할 수 있습니다."
                 display_text = f"'WWW' 접두사 사용이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
             
-            # --- NOHEADER --- (설명 강화)
+            # --- NOHEADER --- 
             elif word.lower() == 'noheader':
                 meaning = "URL 접속 시 **HTTP 헤더 정보가 전혀 없거나 비정상적인 경우**, 이는 서버 설정의 문제이거나, 정보를 숨겨 분석을 어렵게 하려는 악의적인 시도로 해석될 수 있습니다. 정상적인 웹사이트는 일반적으로 다양한 헤더 정보를 주고받습니다."
                 display_text = f"**HTTP 헤더 정보 부재**가 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
             
-            # --- 중요 HTTP 헤더 이름 --- (설명 강화)
+            # --- 중요 HTTP 헤더 이름 --- 
             elif word in IMPORTANT_HEADERS: 
                 meaning = f"'{word}' 헤더는 웹 서버와 클라이언트 간의 통신 정보를 담고 있습니다. 이 헤더의 내용이나 존재 여부는 웹사이트의 특성(예: 사용된 웹 서버 종류, 콘텐츠 타입, 쿠키 설정 등)을 파악하는 데 중요합니다. 악성 사이트의 경우 정상적인 헤더가 없거나, 피싱을 위해 특정 헤더를 조작하는 등 비정상적인 값을 가질 수 있습니다."
                 display_text = f"'{word}' 헤더의 특정 값이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
             
             # --- 일반적인 URL 구성 요소 (도메인, 경로 조각, 쿼리 파라미터 등) ---
-            # 숫자로만 이루어진 단어는 너무 흔하고 의미 없으므로 제외 (예: '12345')
+            # 숫자로만 이루어진 단어는 너무 흔하고 의미 없으므로 제외 
             elif ('.' in word and len(word) > 2) or \
                  (len(word) <= 30 and all(c.isalnum() or c in ['-', '_', '%', '/', '.'] for c in word) and not word.isdigit()):
                 meaning = "URL의 경로나 쿼리 파라미터에 포함된 문자열 패턴은 악성 행위(예: 피싱, 멀웨어 배포)를 숨기거나 유도하기 위해 비정상적으로 구성되는 경우가 많습니다. 비정상적인 길이, 반복되는 문자열, 인코딩된 문자열 등이 여기에 해당할 수 있습니다."
@@ -205,7 +205,7 @@ def classify_url_with_explanation(url: str, model, tokenizer) -> dict:
                 # desc_text가 None이 아닌 경우에만 추가
                 desc_text, _ = get_understandable_explanation_text_and_meaning(word, weight, "") # 실제 설명 생성은 아니고, 필터링 목적으로 호출
                 if desc_text: # 필터링된 단어 중 유효한 것만 추가
-                    # 여기서 'SEP'은 이미 필터링되므로 신경 쓸 필요 없음
+                    
                     significant_features_for_summary.append(word)
 
         # 요약 문구에 HTTP 헤더 정보 부재가 중요한 악성 신호일 경우 포함
@@ -248,7 +248,7 @@ def classify_url_with_explanation(url: str, model, tokenizer) -> dict:
         if not has_understandable_explanation:
             print("자동 필터링된 주요 특징은 없습니다. 원본 LIME 결과에는 복잡한 문자열이나 미미한 영향이 포함될 수 있습니다.")
         print("----------------------------")
-        print("💡 이 분석은 모델이 학습한 내용을 바탕으로 하며, 모든 URL에 대한 절대적인 판단 기준은 아닙니다. ")
+        print(" 이 분석은 모델이 학습한 내용을 바탕으로 하며, 모든 URL에 대한 절대적인 판단 기준은 아닙니다. ")
         print("   의심스러운 URL은 직접 접속하기 전 반드시 주의하시기 바랍니다.\n")
 
 
