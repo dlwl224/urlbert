@@ -138,82 +138,152 @@ def classify_url_with_explanation(url: str, model, tokenizer) -> dict:
         
         # 이해하기 쉬운 키워드를 필터링하고 설명 문구를 생성하는 헬퍼 함수
         # 반환값은 (설명 문구, 해당 특징의 일반적인 의미 설명) 튜플
-        def get_understandable_explanation_text_and_meaning(word, weight, predicted_label_context_for_meaning):
+        def get_understandable_explanation_text_and_meaning(word, weight, current_predicted_label): # predicted_label_context_for_meaning 매개변수 제거
             # 1단계 필터링: BERT 특수 토큰, 너무 긴 문자열, 불필요한 쿠키/세션 이름
-            # word.strip().lower()를 사용하여 어떤 형태의 SEP도 확실히 걸러냄
-            if word.strip().lower() in ["[sep]", "[cls]", "[pad]"] or \
+            if word.strip().lower() in ["[sep]", "[cls]", "[pad]", "sep", "cls", "pad"] or \
                len(word) > 50 or \
                word.upper() in ["NID", "SID", "PHPSESSID", "AEC"]:
                 return None, None
-
-            # 2단계: 영향도에 따른 설명 문구와 의미 생성
+            
+            # 2단계: 기여도에 따른 설명 문구와 의미 생성
             display_text = ""
             meaning = ""
             
-            # 예측된 라벨에 대한 기여 방향
-            # LIME의 weight는 해당 클래스로의 기여도.
-            # 즉, 'benign'일 때 양수 weight는 benign으로 가는 데 긍정적, 음수 weight는 benign으로 가는 데 부정적(malicious로 유도)
-            # 'malicious'일 때 양수 weight는 malicious로 가는 데 긍정적, 음수 weight는 malicious로 가는 데 부정적(benign으로 유도)
+            # 'benign' 예측 시, 양수 기여도는 '정상으로 만드는 요인', 음수 기여도는 '악성으로 미는 요인'
+            # 'malicious' 예측 시, 양수 기여도는 '악성으로 만드는 요인', 음수 기여도는 '정상으로 미는 요인'
             
             # --- 신뢰할 수 있는 도메인 ---
             if word.lower() in TRUSTED_DOMAINS_FOR_EXPLANATION:
                 meaning = "웹사이트의 주소(도메인)는 해당 웹사이트의 신뢰도를 나타내는 중요한 요소입니다. 널리 알려지고 안전하게 사용되는 도메인은 일반적으로 안전한 URL로 판단될 가능성을 높입니다."
-                if predicted_label_context_for_meaning == "정상으로 판단될 가능성을" and weight > 0:
-                    display_text = f"'{word}'와 같은 **널리 알려지고 신뢰할 수 있는 도메인**이 정상으로 판단될 가능성을 높였습니다."
-                elif predicted_label_context_for_meaning == "악성으로 판단될 가능성을" and weight < 0: # 악성인데 음수 영향 -> 악성 판단을 감소 시킴 (즉, 정상쪽으로 미는 요소)
-                    display_text = f"'{word}'와 같은 **신뢰할 수 있는 도메인**이 악성으로 판단될 가능성을 다소 감소시켰습니다. 이는 악성 URL이 정상 사이트를 모방하려 할 때 나타날 수 있는 패턴입니다."
-                else: # 그 외의 경우 (예: 정상인데 음수 영향 - 이 경우는 '정상으로 판단될 가능성을 감소시켰다'가 더 명확)
-                    display_text = f"'{word}'와 같은 **신뢰할 수 있는 도메인**이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'benign' and weight > 0:
+                    display_text = f"'{word}'와 같은 **널리 알려지고 신뢰할 수 있는 도메인**이 이 URL을 정상으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'malicious' and weight < 0: # 악성으로 판단되었지만, 이 도메인은 악성으로 가는 것을 막는 데 기여 (즉, 정상으로 미는 요소)
+                    display_text = f"'{word}'와 같은 **신뢰할 수 있는 도메인**은 이 URL이 악성으로 분류되는 것을 다소 완화하는 요인으로 작용했습니다. 이는 악성 URL이 정상 사이트를 모방하려 할 때 나타날 수 있는 패턴입니다."
+                else: # 신뢰 도메인이지만 예측과 반대되는 방향으로 기여 (예: 정상인데 음수 기여) -> 출력하지 않음
+                    return None, None
             
             # --- HTTPS/HTTP ---
             elif word.lower() == 'https':
                 meaning = "HTTPS는 웹사이트와 사용자 간의 통신을 암호화하여 데이터를 안전하게 보호하는 프로토콜입니다. HTTPS 사용은 URL의 보안 수준을 높이는 긍정적인 신호입니다."
-                display_text = f"안전한 **HTTPS 연결**이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'benign' and weight > 0:
+                    display_text = f"안전한 **HTTPS 연결**이 이 URL을 정상으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'malicious' and weight < 0:
+                    display_text = f"안전한 **HTTPS 연결**은 이 URL이 악성으로 분류되는 것을 다소 완화하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"안전한 **HTTPS 연결**이 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
             elif word.lower() == 'http':
                 meaning = "HTTP는 암호화되지 않은 통신 프로토콜로, 데이터가 노출될 위험이 있습니다. 최신 웹사이트는 대부분 HTTPS를 사용하므로, HTTP만 사용하는 경우 의심스러운 요소로 작용할 수 있습니다."
-                display_text = f"보안에 취약한 'HTTP' 프로토콜이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'malicious' and weight > 0:
+                    display_text = f"보안에 취약한 'HTTP' 프로토콜이 이 URL을 악성으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'benign' and weight < 0:
+                    display_text = f"보안에 취약한 'HTTP' 프로토콜은 이 URL이 정상으로 분류되는 것을 다소 방해하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"보안에 취약한 'HTTP' 프로토콜이 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
 
             # --- WWW ---
             elif word.lower() == 'www':
                 meaning = "대부분의 일반적인 웹사이트는 'www' 접두사를 사용합니다. 이는 표준적인 웹 주소 형태로, URL의 정상성을 나타내는 신호로 작용할 수 있습니다."
-                display_text = f"'WWW' 접두사 사용이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'benign' and weight > 0:
+                    display_text = f"'WWW' 접두사 사용이 이 URL을 정상으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'malicious' and weight < 0:
+                    display_text = f"'WWW' 접두사 사용은 이 URL이 악성으로 분류되는 것을 다소 완화하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"'WWW' 접두사 사용이 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
             
             # --- NOHEADER --- 
             elif word.lower() == 'noheader':
                 meaning = "URL 접속 시 **HTTP 헤더 정보가 전혀 없거나 비정상적인 경우**, 이는 서버 설정의 문제이거나, 정보를 숨겨 분석을 어렵게 하려는 악의적인 시도로 해석될 수 있습니다. 정상적인 웹사이트는 일반적으로 다양한 헤더 정보를 주고받습니다."
-                display_text = f"**HTTP 헤더 정보 부재**가 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'malicious' and weight > 0:
+                    display_text = f"**HTTP 헤더 정보 부재**가 이 URL을 악성으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'benign' and weight < 0:
+                    display_text = f"**HTTP 헤더 정보 부재**는 이 URL이 정상으로 분류되는 것을 다소 방해하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"**HTTP 헤더 정보 부재**가 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
             
             # --- 중요 HTTP 헤더 이름 --- 
             elif word in IMPORTANT_HEADERS: 
                 meaning = f"'{word}' 헤더는 웹 서버와 클라이언트 간의 통신 정보를 담고 있습니다. 이 헤더의 내용이나 존재 여부는 웹사이트의 특성(예: 사용된 웹 서버 종류, 콘텐츠 타입, 쿠키 설정 등)을 파악하는 데 중요합니다. 악성 사이트의 경우 정상적인 헤더가 없거나, 피싱을 위해 특정 헤더를 조작하는 등 비정상적인 값을 가질 수 있습니다."
-                display_text = f"'{word}' 헤더의 특정 값이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'malicious' and weight > 0:
+                    display_text = f"'{word}' 헤더의 특정 값이 이 URL을 악성으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'benign' and weight < 0:
+                    display_text = f"'{word}' 헤더의 특정 값은 이 URL이 정상으로 분류되는 것을 다소 방해하는 요인으로 작용했습니다."
+                elif current_predicted_label == 'malicious' and weight < 0:
+                    display_text = f"'{word}' 헤더의 특정 값은 이 URL이 악성으로 분류되는 것을 다소 완화하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"'{word}' 헤더의 특정 값이 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
             
             # --- 일반적인 URL 구성 요소 (도메인, 경로 조각, 쿼리 파라미터 등) ---
             # 숫자로만 이루어진 단어는 너무 흔하고 의미 없으므로 제외 
             elif ('.' in word and len(word) > 2) or \
                  (len(word) <= 30 and all(c.isalnum() or c in ['-', '_', '%', '/', '.'] for c in word) and not word.isdigit()):
                 meaning = "URL의 경로나 쿼리 파라미터에 포함된 문자열 패턴은 악성 행위(예: 피싱, 멀웨어 배포)를 숨기거나 유도하기 위해 비정상적으로 구성되는 경우가 많습니다. 비정상적인 길이, 반복되는 문자열, 인코딩된 문자열 등이 여기에 해당할 수 있습니다."
-                display_text = f"URL 내의 '{word}' 패턴이 {predicted_label_context_for_meaning} {('증가시키는' if weight > 0 else '감소시키는')} 영향을 미쳤습니다."
+                if current_predicted_label == 'malicious' and weight > 0:
+                    display_text = f"URL 내의 '{word}' 패턴이 이 URL을 악성으로 판단하는 데 긍정적인 영향을 주었습니다."
+                elif current_predicted_label == 'benign' and weight < 0:
+                    display_text = f"URL 내의 '{word}' 패턴은 이 URL이 정상으로 분류되는 것을 다소 방해하는 요인으로 작용했습니다."
+                elif current_predicted_label == 'malicious' and weight < 0:
+                    display_text = f"URL 내의 '{word}' 패턴은 이 URL이 악성으로 분류되는 것을 다소 완화하는 요인으로 작용했습니다."
+                else:
+                    display_text = f"URL 내의 '{word}' 패턴이 이 URL 판단에 {('긍정적인' if weight > 0 else '부정적인')} 영향을 주었습니다."
             
             return display_text, meaning
 
         # --- 요약 설명 생성 (reason_summary) ---
         significant_features_for_summary = []
         for word, weight in explanation_list:
-            if abs(weight) > 0.05: # 좀 더 높은 임계값을 사용하여 주요 특징만 요약에 포함
-                # 요약에는 키워드 자체만 명시적으로 포함 (LIME이 분석한 단어 그대로)
-                # desc_text가 None이 아닌 경우에만 추가
-                desc_text, _ = get_understandable_explanation_text_and_meaning(word, weight, "") # 실제 설명 생성은 아니고, 필터링 목적으로 호출
-                if desc_text: # 필터링된 단어 중 유효한 것만 추가
-                    
-                    significant_features_for_summary.append(word)
+            # LIME의 as_list는 (feature, weight) 튜플을 반환.
+            # 해당 word가 LIME 설명 함수에 의해 유효한 설명 텍스트를 생성하는지 확인
+            # 요약 목적이므로 predicted_label_context_for_meaning은 빈 문자열로 넘겨 필터링만 수행
+            temp_desc_text, _ = get_understandable_explanation_text_and_meaning(word, weight, predicted_label) 
 
-        # 요약 문구에 HTTP 헤더 정보 부재가 중요한 악성 신호일 경우 포함
+            # 유효한 설명 텍스트가 있고, 기여도 임계값을 넘는 경우만 요약에 고려
+            if temp_desc_text and abs(weight) > 0.05: 
+                # BENIGN 예측인 경우, 양수 기여도를 가진 특징만 '신뢰할 수 있는 패턴'으로 요약
+                if predicted_label == 'benign' and weight > 0:
+                    significant_features_for_summary.append(word)
+                # MALICIOUS 예측인 경우, 양수 기여도를 가진 특징 (악성 특징)만 '정상적이지 않은 패턴'으로 요약
+                elif predicted_label == 'malicious' and weight > 0:
+                    # 'NOHEADER'는 특별히 처리하여 요약에 직접 표시
+                    if word.lower() == 'noheader':
+                        significant_features_for_summary.append("HTTP 헤더 정보 부재")
+                    else:
+                        significant_features_for_summary.append(word)
+                # MALICIOUS 예측인 경우, 음수 기여도를 가진 신뢰 도메인도 요약에 포함
+                # 이 경우에는 '정상 사이트를 모방하려는 시도'라는 맥락으로 설명할 것임
+                elif predicted_label == 'malicious' and weight < 0 and word.lower() in TRUSTED_DOMAINS_FOR_EXPLANATION:
+                    significant_features_for_summary.append(f"{word} (신뢰 도메인)")
+
+
+        # 요약 문구 생성
         if predicted_label == 'malicious':
-            if 'NOHEADER' in [f[0].lower() for f in explanation_list if abs(f[1]) > 0.05]: # NOHEADER가 주요 특징으로 꼽혔을 때
-                reason_phrases.append(f"특히 **HTTP 헤더 정보 부재**와 '{', '.join(significant_features_for_summary[:2])}' 등과 같이 **정상적이지 않은 패턴**이 악성으로 의심됩니다.")
-            elif significant_features_for_summary:
-                reason_phrases.append(f"특히 '{', '.join(significant_features_for_summary[:3])}' 등과 같이 **정상적이지 않은 패턴**이 악성으로 의심됩니다.")
+            # 'NOHEADER'가 significant_features_for_summary에 이미 들어있을 수 있으므로 중복 처리 방지
+            # 그리고 summary에는 최대 3개까지만 보여주되, 'NOHEADER'는 항상 최우선으로 보여주기 위해 특별히 처리
+            final_summary_features_display = [] # 최종 요약 문구에 표시될 특징들
+            
+            # 'HTTP 헤더 정보 부재'는 항상 최우선으로 표시
+            if "HTTP 헤더 정보 부재" in significant_features_for_summary:
+                final_summary_features_display.append("HTTP 헤더 정보 부재")
+                significant_features_for_summary.remove("HTTP 헤더 정보 부재") # 중복 방지
+
+            # 신뢰 도메인 (음수 기여)이 있다면 다음으로 표시
+            trusted_domains_in_summary = [f for f in significant_features_for_summary if "(신뢰 도메인)" in f]
+            for td in trusted_domains_in_summary:
+                if len(final_summary_features_display) < 3: # 최대 3개까지
+                    final_summary_features_display.append(td)
+                    significant_features_for_summary.remove(td) # 중복 방지
+
+            # 나머지 악성 패턴 특징들 추가
+            for other_feature in significant_features_for_summary:
+                if len(final_summary_features_display) < 3: # 최대 3개까지
+                    final_summary_features_display.append(other_feature)
+            
+            if final_summary_features_display:
+                # 신뢰 도메인 포함 여부에 따라 메시지 조정
+                if any("(신뢰 도메인)" in f for f in final_summary_features_display):
+                    # 신뢰 도메인이 포함된 경우, 사칭 가능성 언급
+                    reason_phrases.append(f"특히 '{', '.join(final_summary_features_display).replace(' (신뢰 도메인)', '')}'과 같은 패턴은 악성으로 의심되지만, 일부 **신뢰 도메인**이 포함되어 정상 사이트를 모방하려는 시도일 수 있습니다.")
+                else:
+                    reason_phrases.append(f"특히 '{', '.join(final_summary_features_display)}' 등과 같이 **정상적이지 않은 패턴**이 악성으로 의심됩니다.")
             else:
                 reason_phrases.append("URL의 전반적인 구조와 패턴이 알려진 악성 URL과 유사하여 의심됩니다.")
         else: # 'benign'
@@ -227,34 +297,29 @@ def classify_url_with_explanation(url: str, model, tokenizer) -> dict:
         # --- 상세 설명 출력 ---
         print("\n--- 상세 분석 (URL 특징별 기여도) ---")
         print("💡 이 섹션에서는 모델이 URL을 분석하며 중요하게 판단한 주요 특징들과 그 이유를 설명합니다.")
-        print("   '영향도'는 각 특징이 최종 판단에 얼마나 강하게 기여했는지를 숫자로 나타냅니다. (값이 클수록 기여도 높음)\n")
+        print("   '기여도'는 각 특징이 최종 판단에 얼마나 강하게 기여했는지를 숫자로 나타냅니다. (값이 클수록 기여도 높음)\n")
         
         has_understandable_explanation = False
         for word, weight in explanation.as_list(label=predicted_class_id): 
-            classification_impact_for_meaning = ""
-            if predicted_label == 'malicious':
-                classification_impact_for_meaning = "악성으로 판단될 가능성을" if weight > 0 else "정상으로 판단될 가능성을"
-            else: # benign
-                classification_impact_for_meaning = "정상으로 판단될 가능성을" if weight > 0 else "악성으로 판단될 가능성을"
-
-            desc_text, meaning = get_understandable_explanation_text_and_meaning(word, weight, classification_impact_for_meaning)
+            # get_understandable_explanation_text_and_meaning 함수에 predicted_label 추가 전달
+            desc_text, meaning = get_understandable_explanation_text_and_meaning(word, weight, predicted_label)
             
-            if desc_text and abs(weight) > 0.01: # 영향도가 0.01 이상인 경우만 출력
-                print(f"  - **특징**: {desc_text} (영향도: {weight:.4f})")
+            if desc_text and abs(weight) > 0.01: # 기여도가 0.01 이상인 경우만 출력
+                print(f"  - **특징**: {desc_text} (기여도: {weight:.4f})")
                 if meaning:
                     print(f"    **설명**: {meaning}\n")
                 has_understandable_explanation = True
         
         if not has_understandable_explanation:
-            print("자동 필터링된 주요 특징은 없습니다. 원본 LIME 결과에는 복잡한 문자열이나 미미한 영향이 포함될 수 있습니다.")
+            print("자동 필터링된 주요 특징은 없습니다. 원본 LIME 결과에는 복잡한 문자열이나 미미한 기여도가 포함될 수 있습니다.")
         print("----------------------------")
-        print(" 이 분석은 모델이 학습한 내용을 바탕으로 하며, 모든 URL에 대한 절대적인 판단 기준은 아닙니다. ")
+        print("💡 이 분석은 모델이 학습한 내용을 바탕으로 하며, 모든 URL에 대한 절대적인 판단 기준은 아닙니다. ")
         print("   의심스러운 URL은 직접 접속하기 전 반드시 주의하시기 바랍니다.\n")
 
 
     except Exception as e:
         print(f"LIME 설명 생성 중 오류 발생: {e}")
-        reason_summary = f"이 URL은 {predicted_label.upper()}로 판단됩니다 (확신도: {confidence:.2f}%). 판단 근거를 설명하는 중 오류가 발생했습니다."
+        reason_summary = f"이 URL은 {predicted_label.upper()}로 판단됩니다 (확신도: {confidence:.2f}%)."
         explanation_list = []
 
     print(f"분류 결과: **{predicted_label.upper()}** (확신도: {confidence:.2f}%)")
