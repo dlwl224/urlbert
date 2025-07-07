@@ -51,6 +51,24 @@ TRUSTED_DOMAINS_FOR_EXPLANATION = [
     'apple', 'microsoft', 'amazon', 'paypal', 'coupang', 'gmarket', '11st',
     'tistory', 'wordpress', 'github', 'gitlab', 'stackoverflow', 'twitter', 'x.com',
     'wikipedia', 'netflix', 'ebay', 'alibaba', 'shopify', 'bbc', 'cnn', 'discord',
-    'reddit', 'linkedin', 'line', 'telegram', 'vimeo', 'unsplash', 'pixabay', 'flickr'
-    # 여기에 필요에 따라 더 많은 도메인을 추가할 수 있습니다.
-]
+    'reddit', 'linkedin', 'line', 'telegram', 'vimeo', 'unsplash', 'pixabay', 'flickr',
+    'domain_name','facebook.com','google.com','akadns.net','gstatic.com','microsoft.com',
+    'apple.com','microsoftonline.com','bing.com','googleusercontent.com','whatsapp.net',
+    'doubleclick.net','aaplimg.com','aa-rt.sharepoint.com','office.com','digicert.com',
+    'netgate.net.nz','play.googleapis.com','googleapis.com','www.googleapis.com','fbcdn.net','akamai.com',
+    'update.googleapis.com','akamai-zt.com','msn.com','akamai.net','skype.com','office.net','icloud.com',
+    'safebrowsing.googleapis.com','windows.com','tiktokcdn.com','officeapps.live.com','app-measurement.com',
+    'windowsupdate.com','instagram.com','apple-dns.net','youtube.com','ytimg.com','clientservices.googleapis.com',
+    'akamaiedge.net','windows.net','googleadservices.com','googlesyndication.com','amazonaws.com',
+    'google-analytics.com','ntp.org','login.live.com','cloudflare.com','googlevideo.com',
+    'office365.com','sparkbb.co.nz','optimizationguide-pa.googleapis.com','gvt1.com','akamaized.net',
+    'azureedge.net','fonts.googleapis.com','adobe.com','googletagmanager.com','content-autofill.googleapis.com',
+    'gvt2.com','lencr.org','azure.com','youtubei.googleapis.com','play-fe.googleapis.com',
+    'tiktokv.com','msd.govt.nz','sfx.ms','churchofjesuschrist.org','maerskgroup.com','android.googleapis.com',
+    'outlook.com','global-gateway.net.nz','notifications-pa.googleapis.com','crashlytics.com',
+    'pki.goog','appsflyersdk.com','ggpht.com','cloudsink.net','tiktokrow-cdn.com','whatsapp.com','yahoo.com',
+    'static.microsoft','fastly-edge.com','android.com','cdn-apple.com','adobedtm.com','firebaseremoteconfig.googleapis.com',
+    'firebaselogging-pa.googleapis.com','scorecardresearch.com','prod-lt-playstoregatewayadapter-pa.googleapis.com',
+    'netflix.com','cisco.com','facebook.net','dell.com','adnxs.com','amazon-adsystem.com','demdex.net',
+    'playstoregatewayadapter-pa.googleapis.com','zscalertwo.net','sentry.io'
+    ]
