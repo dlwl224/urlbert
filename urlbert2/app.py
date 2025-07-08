@@ -1,4 +1,3 @@
-# /home/kong/urlbert/url_bert/urlbert2/app.py
 import random
 import numpy as np
 import torch
@@ -8,7 +7,8 @@ from config import SEED
 
 # core 모듈에서 필요한 함수 임포트 (모델과 토크나이저는 함수 반환값으로 받음)
 from core.model_loader import load_inference_model 
-from core.urlbert_analyzer import classify_url_with_explanation
+# classify_url_with_explanation 대신 classify_url 함수를 임포트합니다.
+from core.urlbert_analyzer import classify_url 
 
 # --- 재현성을 위한 시드 고정 (원본 url.py와 동일하게 유지) ---
 random.seed(SEED)
@@ -38,16 +38,16 @@ def main():
     ]
 
     for url in test_urls:
-        # classify_url_with_explanation 함수에 로드된 model과 tokenizer 객체를 직접 전달
-        # 이 함수 내부에서 이미 분석 과정과 상세 LIME 설명이 출력됩니다.
-        result = classify_url_with_explanation(url, model, tokenizer)
+        # classify_url 함수에 로드된 model과 tokenizer 객체를 직접 전달
+        # 이 함수 내부에서 이미 분석 과정이 출력됩니다.
+        result = classify_url(url, model, tokenizer)
         
         # --- 분석 결과 요약 출력 (명시적으로 다시 추가) ---
         print("\n--- 분석 결과 요약 ---")
         print(f"URL: {url}")
         print(f"분류: {result['predicted_label'].upper()} (확신도: {result['confidence']})")
-        print(f"설명: {result['reason_summary']}")
-        # print(f"자세한 기여도: {result['detailed_explanation']}") # 필요시 주석 해제하여 상세 기여도 확인
+        print(f"설명: {result['reason_summary']}") # LIME 설명이 없으므로 고정 메시지 출력
+        # print(f"자세한 기여도: {result['detailed_explanation']}") # LIME이 없으므로 주석 처리 유지
         print("-" * 70) # 각 URL 분석 결과 사이에 구분선 추가
 
 if __name__ == "__main__":
