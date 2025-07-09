@@ -13,13 +13,12 @@ from urllib.parse import urlparse # URL 파싱을 위해 추가
 from pytorch_pretrained_bert import BertTokenizer
 from lime.lime_text import LimeTextExplainer
 
-# config 파일의 경로를 제대로 참조하도록 수정 (프로젝트 루트 기준으로)
-# config.py는 urlbert2 바로 아래에 있다고 가정합니다.
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# 이제 config를 import 할 수 있습니다.
+
 from config import (
     PAD_SIZE, DEVICE, CLASS_LABELS, IMPORTANT_HEADERS,
     REQUEST_TIMEOUT_SECONDS, LIME_NUM_FEATURES, LIME_NUM_SAMPLES,
@@ -502,20 +501,28 @@ def explain_prediction_with_lime(url: str, header_info: str, model, tokenizer, p
 
 # --- 3. URL 분류 및 설명을 통합하는 함수 ---
 def classify_url_and_explain(url: str, model, tokenizer) -> dict:
-    # 1. URL 예측 수행
-    prediction_output = predict_url(url, model, tokenizer)
-    predicted_label = prediction_output['predicted_label']
-    confidence = prediction_output['confidence']
-    predicted_class_id = prediction_output['predicted_class_id']
-    header_info = prediction_output['header_info']
+    # 1) URL 예측 수행
+    pred_out = predict_url(url, model, tokenizer)
 
-    # 2. LIME 설명을 생성
-    lime_explanation_output = explain_prediction_with_lime(url, header_info, model, tokenizer, predicted_class_id)
-    
-    # 결과 통합 및 반환 (확신도는 소수점 둘째자리까지 포맷팅)
+    # 2) LIME 설명 생성
+    lime_out = explain_prediction_with_lime(
+        url,
+        pred_out["header_info"],
+        model,
+        tokenizer,
+        pred_out["predicted_class_id"]
+    )
+
+
+    # 3) DB 저장용 필드명에 맞춰서 dict 반환
+    is_mal = 1 if pred_out["predicted_label"] == "malicious" else 0
+
     return {
-        "predicted_label": predicted_label,
-        "confidence": f"{confidence * 100:.2f}",
-        "reason_summary": lime_explanation_output['reason_summary'],
-        "detailed_explanation": lime_explanation_output['formatted_detailed_explanation']
+        "url": url,
+        "header_info": pred_out["header_info"],
+        "is_malicious": is_mal,
+        "confidence": pred_out["confidence"],    # float 타입
+        "true_label": None,                      
+        "reason_summary": lime_out["reason_summary"],
+        "detailed_explanation": lime_out["formatted_detailed_explanation"]
     }
