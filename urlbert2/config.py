@@ -42,10 +42,10 @@ IMPORTANT_HEADERS = ["Server", "Content-Type", "Set-Cookie", "Location", "Date"]
 
 # --- 3. 기타 설정 (LIME 관련 설정도 여기에 포함) ---
 REQUEST_TIMEOUT_SECONDS = 5 # requests.get의 timeout
-#LIME_NUM_FEATURES = 5
-#LIME_NUM_SAMPLES = 1000
+LIME_NUM_FEATURES = 5
+LIME_NUM_SAMPLES = 1000
 
-'''
+
 TRUSTED_DOMAINS_FOR_EXPLANATION = [
     'google', 'naver', 'kakao', 'daum', 'youtube', 'facebook', 'instagram', 
     'apple', 'microsoft', 'amazon', 'paypal', 'coupang', 'gmarket', '11st',
@@ -72,4 +72,4 @@ TRUSTED_DOMAINS_FOR_EXPLANATION = [
     'netflix.com','cisco.com','facebook.net','dell.com','adnxs.com','amazon-adsystem.com','demdex.net',
     'playstoregatewayadapter-pa.googleapis.com','zscalertwo.net','sentry.io'
     ]
-    '''
+ 
