@@ -21,26 +21,25 @@ CLASSIFIER_CHECKPOINTS_DIR = os.path.join(PROJECT_ROOT, 'finetune', 'phishing', 
 CLASSIFIER_MODEL_PATH = os.path.join(CLASSIFIER_CHECKPOINTS_DIR, 'modelx_URLBERT_80.pth')
 
 # --- 2. 모델 및 학습 관련 설정 ---
-SEED = 42 # <-- 이 부분이 중요합니다! config에 SEED가 정의되어야 합니다.
-PAD_SIZE = 512
+SEED = 42 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# BERT 모델 설정 시 필요한 kwargs (원본 url.py의 config_kwargs와 동일)
+# BERT 모델 설정 시 필요한 kwargs 
 BERT_CONFIG_KWARTS = {
     "cache_dir": None,
     "revision": 'main',
     "use_auth_token": None,
     "hidden_dropout_prob": 0.1,
-    "vocab_size": 5000, # 모델 학습 시 사용했던 vocab_size와 동일해야 합니다.
+    "vocab_size": 5000, 
 }
 
-# 분류 클래스 라벨 (모델 출력 인덱스와 매칭)
+# 분류 클래스 라벨 
 CLASS_LABELS = {0: 'benign', 1: 'malicious'}
 
-# HTTP 헤더 추출 시 중요한 헤더 목록 (원본 url.py와 동일)
+# HTTP 헤더 추출 시 중요한 헤더 목록 
 IMPORTANT_HEADERS = ["Server", "Content-Type", "Set-Cookie", "Location", "Date"]
 
-# --- 3. 기타 설정 (LIME 관련 설정도 여기에 포함) ---
+# --- 3. 기타 설정 ---
 REQUEST_TIMEOUT_SECONDS = 5 # requests.get의 timeout
 LIME_NUM_FEATURES = 5
 LIME_NUM_SAMPLES = 1000

@@ -10,16 +10,16 @@ from config import (
     CLASSIFIER_MODEL_PATH, DEVICE, BERT_CONFIG_KWARTS
 )
 
-# 전역 변수로 모델과 토크나이저 저장 (한 번 로드 후 재사용)
+# 전역 변수로 모델과 토크나이저 저장 
 global_tokenizer = None
 global_model = None
 
-# --- 모델 클래스 정의 (원본 url.py와 동일) ---
+# --- 모델 클래스 정의  ---
 class BertForSequenceClassification(nn.Module):
     def __init__(self, bert, freeze=False):
         super(BertForSequenceClassification, self).__init__()
         self.bert = bert
-        # 모든 BERT 파라미터는 학습 가능하게 설정 (원본과 동일)
+        # 모든 BERT 파라미터는 학습 가능하게 설정
         for name, param in self.bert.named_parameters():
             param.requires_grad = True
         self.dropout = nn.Dropout(p=0.1)
@@ -44,11 +44,11 @@ def load_inference_model():
 
     if global_model is not None and global_tokenizer is not None:
         print("모델과 토크나이저가 이미 로드되어 있습니다.")
-        return global_model, global_tokenizer # 이미 로드된 경우 반환
+        return global_model, global_tokenizer 
 
     print("모델 및 토크나이저 로드 시작 (앱 초기화)...")
     
-    # 1. Tokenizer 로드 (원본 url.py와 동일하게 pytorch_pretrained_bert.BertTokenizer 사용)
+    # 1. Tokenizer 로드 
     current_tokenizer = BertTokenizer(VOCAB_FILE_PATH) 
 
     # 2. BERT Config 로드
@@ -58,20 +58,20 @@ def load_inference_model():
     bert_model_for_loading = AutoModelForMaskedLM.from_config(config=config)
     bert_model_for_loading.resize_token_embeddings(BERT_CONFIG_KWARTS["vocab_size"])
 
-    # 4. 기존 BERT 모델의 가중치 로드 (map_location을 CPU로 설정하여 GPU 없어도 로드 가능하게)
+    # 4. 기존 BERT 모델의 가중치 로드 
     bert_dict = torch.load(BERT_PRETRAINED_MODEL_PATH, map_location=torch.device("cpu"))
     bert_model_for_loading.load_state_dict(bert_dict)
 
     # 5. 분류 모델 초기화 및 학습된 가중치 로드
     current_model = BertForSequenceClassification(bert_model_for_loading)
-    current_model.bert.cls = nn.Sequential() # MaskedLM 헤드 제거 (원본 url.py와 동일)
+    current_model.bert.cls = nn.Sequential() # MaskedLM 헤드 제거 
     current_model.load_state_dict(torch.load(CLASSIFIER_MODEL_PATH, map_location=DEVICE))
     current_model.to(DEVICE)
-    current_model.eval() # 추론 모드 설정 (드롭아웃 등을 비활성화)
+    current_model.eval() # 추론 모드 설정 
 
     print("모델 로드 완료.")
     
-    # 전역 변수에 할당 (app.py에서 직접 받아서 사용할 예정이므로 반환도 추가)
+    # 전역 변수에 할당 
     global_tokenizer = current_tokenizer
     global_model = current_model
     

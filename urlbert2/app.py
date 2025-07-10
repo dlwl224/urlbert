@@ -8,7 +8,7 @@ from config import SEED
 from core.model_loader import load_inference_model 
 from core.urlbert_analyzer import classify_url_and_explain # predict_url, explain_prediction_with_lime은 classify_url_and_explain 내에서 호출되므로 여기서 직접 임포트할 필요는 없습니다.
 
-# --- 재현성을 위한 시드 고정 (동일) ---
+# --- 재현성을 위한 시드 고정  ---
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)

@@ -1,4 +1,4 @@
-# /home/kong/urlbert/url_bert/urlbert2/core/urlbert_analyzer.py
+
 
 import os
 import sys
