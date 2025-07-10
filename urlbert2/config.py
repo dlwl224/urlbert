@@ -21,6 +21,7 @@ CLASSIFIER_CHECKPOINTS_DIR = os.path.join(PROJECT_ROOT, 'finetune', 'phishing', 
 CLASSIFIER_MODEL_PATH = os.path.join(CLASSIFIER_CHECKPOINTS_DIR, 'modelx_URLBERT_80.pth')
 
 # --- 2. 모델 및 학습 관련 설정 ---
+PAD_SIZE=512
 SEED = 42 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
