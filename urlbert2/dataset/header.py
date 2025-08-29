@@ -36,11 +36,11 @@ def get_header_info(url):
 
 
 # 경로 설정
-train_csv_path = "/mnt/c/Users/DS/Desktop/PythonProject/url_bert/url_bert/urlbert2/dataset/train.csv"
+train_csv_path = "/home/kong/urlbert/url_bert/urlbert2/dataset/output.csv"
 input_file = train_csv_path
 output_dir = os.path.dirname(train_csv_path)
 batch_dir = os.path.join(output_dir, "batches")
-final_output_file = os.path.join(output_dir, "urlbert_input.csv")
+final_output_file = os.path.join(output_dir, "urlbert_input29.csv")
 
 # CSV 불러오기
 df = pd.read_csv(input_file)
