@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import csv
 import time
 
-OUTPUT_FILE = "/home/kong/urlbert/url_bert/urlbert2/dataset/daum_all_links.csv"
+OUTPUT_FILE = "/home/kong/urlbert/url_bert/urlbert2/dataset/link/severance_all_links.csv"
 
 def crawl_all_links(start_url):
     options = webdriver.ChromeOptions()
@@ -35,7 +35,7 @@ def save_to_csv(links, filename):
             writer.writerow([url])
 
 if __name__ == "__main__":
-    start = "https://www.daum.net"
+    start = "https://www.severance.healthcare/severance/"
     all_links = crawl_all_links(start)
     print(f"총 {len(all_links)}개 링크 수집됨.")
     save_to_csv(all_links, OUTPUT_FILE)
