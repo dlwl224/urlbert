@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/LIME-XAI-6A5ACD?style=flat-square" />
 </p>
 
-이 모델은 큐싱(QR 피싱) 탐지 서비스 **[SQanaR](https://github.com/dlwl224/final_sqanar)** 의 핵심 탐지 엔진으로 사용되었습니다.
+이 모델은 큐싱(QR 피싱) 탐지 서비스 **[SQanaR](https://github.com/dlwl224/sqanar-quishing-detector)** 의 핵심 탐지 엔진으로 사용되었습니다.
 
 ---
 
